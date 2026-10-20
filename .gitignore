@@ -1,3 +1,6 @@
+# PRD
+arsipcerdas_edrms_prd_technical_architecture.md
+
 # Environment variables (Sangat penting!)
 .env
 .env.local
@@ -29,5 +32,3 @@ pgdata/
 Thumbs.db
 .vscode/
 .idea/
-
-arsipcerdas_edrms_prd_technical_architecture.md

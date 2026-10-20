@@ -1,0 +1,28 @@
+# Web Framework & Server
+fastapi>=0.110.0
+uvicorn[standard]>=0.28.0
+python-multipart>=0.0.9
+
+# Database & ORM
+SQLAlchemy>=2.0.28
+psycopg2-binary>=2.9.9
+pgvector>=0.2.5
+
+# Konfigurasi & Validasi Data
+pydantic>=2.6.4
+pydantic-settings>=2.2.1
+python-dotenv>=1.0.1
+
+# Object Storage (MinIO)
+minio>=7.2.5
+
+# Ekstraksi PDF & Dokumen
+PyMuPDF>=1.24.0
+
+# Background Worker & Cache
+celery>=5.3.6
+redis>=5.0.3
+
+# Keamanan & Kriptografi
+cryptography>=42.0.5
+python-jose[cryptography]>=3.3.0
