@@ -15,7 +15,7 @@ class PotonganBerkas(Base):
     nomor_halaman = Column(Integer, nullable=False)
     isi = Column(Text, nullable=False)
     jumlah_token = Column(Integer, nullable=False)
-    embedding = Column(Vector(1536), nullable=True) # Vektor embedding
+    embedding = Column(Vector(768), nullable=True) # Vektor embedding
     waktu_pembuatan = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relasi ke dokumen induk

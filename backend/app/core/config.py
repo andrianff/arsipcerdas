@@ -1,6 +1,11 @@
+from pathlib import Path
 from typing import List, Union
 from pydantic import AnyHttpUrl, validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Lokasi absolut file .env pada root project
+BASE_DIR = Path(__file__).resolve().parents[3]
+ENV_FILE = BASE_DIR / ".env"
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "ArsipCerdas EDRMS"
@@ -10,7 +15,7 @@ class Settings(BaseSettings):
     # Database PostgreSQL
     POSTGRES_SERVER: str = "localhost"
     POSTGRES_USER: str = "arsip_user"
-    POSTGRES_PASSWORD: str = "password_kuat_anda"
+    POSTGRES_PASSWORD: str = "arsip_pass123"
     POSTGRES_DB: str = "arsipcerdas_db"
     POSTGRES_PORT: str = "5432"
 
@@ -21,7 +26,7 @@ class Settings(BaseSettings):
     # MinIO Object Storage
     MINIO_ENDPOINT: str = "localhost:9000"
     MINIO_ROOT_USER: str = "minioadmin"
-    MINIO_ROOT_PASSWORD: str = "minioadmin"
+    MINIO_ROOT_PASSWORD: str = "minioadmin123"
     MINIO_BUCKET_DOCUMENTS: str = "arsipcerdas-docs"
     MINIO_SECURE: bool = False
 
@@ -50,8 +55,12 @@ class Settings(BaseSettings):
         "http://127.0.0.1:8000"
     ]
 
+    # Google Gemini AI Configuration
+    GEMINI_API_KEY: str = ""
+    GEMINI_EMBEDDING_MODEL: str = "gemini-embedding-001"
+
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(str(ENV_FILE), ".env", "../.env"),
         env_file_encoding="utf-8",
         extra="ignore"
     )

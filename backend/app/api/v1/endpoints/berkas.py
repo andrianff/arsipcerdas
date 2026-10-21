@@ -17,6 +17,7 @@ from app.schemas.log_audit import LogAuditResponse
 from app.services.storage_service import StorageService
 from app.services.pdf_processor import PDFProcessor
 from app.services.audit_service import AuditService
+from app.services.embedding_service import EmbeddingService
 
 router = APIRouter()
 
@@ -39,7 +40,8 @@ async def upload_berkas(
     2. Upload ke Object Storage MinIO & hitung SHA-256.
     3. Ekstraksi teks & pemecahan chunks dengan PyMuPDF.
     4. Hitung masa retensi otomatis berdasarkan JRA.
-    5. Rekam jejak audit (ISO 15489).
+    5. Generate Vektor Embedding 768 dimensi dengan Google Gemini.
+    6. Rekam jejak audit (ISO 15489).
     """
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(
@@ -100,14 +102,25 @@ async def upload_berkas(
     db.add(berkas)
     db.flush()  # Dapatkan berkas.id
 
-    # 5. Simpan Potongan Teks (Chunks)
-    for chunk in chunks_data:
+    # 5. Generate Vector Embedding & Simpan Potongan Teks (Chunks)
+    daftar_teks = [c["isi"] for c in chunks_data]
+    daftar_embedding = []
+    if daftar_teks:
+        try:
+            daftar_embedding = EmbeddingService.generate_embeddings_batch(daftar_teks)
+        except Exception as e:
+            # Catat warning jika Gemini API mengalami kendala jaringan (dokumen tetap tersimpan)
+            print(f"Warning: Gagal membuat embedding dokumen: {e}")
+
+    for i, chunk in enumerate(chunks_data):
+        vektor = daftar_embedding[i] if i < len(daftar_embedding) else None
         p_chunk = PotonganBerkas(
             id_berkas=berkas.id,
             indeks_potongan=chunk["indeks_potongan"],
             nomor_halaman=chunk["nomor_halaman"],
             isi=chunk["isi"],
-            jumlah_token=chunk["jumlah_token"]
+            jumlah_token=chunk["jumlah_token"],
+            embedding=vektor
         )
         db.add(p_chunk)
 

@@ -28,3 +28,6 @@ redis>=5.0.3
 # Keamanan & Kriptografi
 cryptography>=42.0.5
 python-jose[cryptography]>=3.3.0
+
+# Google Gemini AI SDK
+google-genai>=2.0.0
