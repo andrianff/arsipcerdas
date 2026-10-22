@@ -2,6 +2,19 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "vector";
 
+-- 0. Master Akun Pengguna & Hak Akses
+CREATE TABLE IF NOT EXISTS pengguna (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    email VARCHAR(255) UNIQUE NOT NULL,
+    nama_lengkap VARCHAR(150) NOT NULL,
+    hashed_password VARCHAR(255) NOT NULL,
+    peran VARCHAR(50) NOT NULL DEFAULT 'operator', -- admin, arsiparis, operator, auditor
+    unit_kerja VARCHAR(100) NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    waktu_pembuatan TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    waktu_pembaruan TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
 -- 1. Master Klasifikasi & Jadwal Retensi Arsip (JRA)
 CREATE TABLE IF NOT EXISTS jadwal_retensi (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -67,6 +80,7 @@ CREATE TABLE IF NOT EXISTS log_audit_berkas (
 );
 
 -- 5. Indeks Khusus untuk Kecepatan Query Skala Besar
+CREATE INDEX IF NOT EXISTS indeks_pengguna_email ON pengguna(email);
 CREATE INDEX IF NOT EXISTS indeks_lookup_berkas ON berkas(nomor_berkas, level_keamanan, status_siklus_hidup);
 CREATE INDEX IF NOT EXISTS indeks_tanggal_retensi_berkas ON berkas(tanggal_mulai_aktif, tanggal_akhir_retensi);
 CREATE INDEX IF NOT EXISTS indeks_embedding_potongan_hnsw ON potongan_berkas USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64);

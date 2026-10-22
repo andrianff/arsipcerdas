@@ -19,6 +19,14 @@ from app.schemas.pencarian import (
 from app.schemas.log_audit import (
     LogAuditResponse,
 )
+from app.schemas.pengguna import (
+    PenggunaBase,
+    PenggunaCreate,
+    PenggunaUpdate,
+    PenggunaResponse,
+    LoginRequest,
+    TokenResponse,
+)
 
 __all__ = [
     "JadwalRetensiBase",
@@ -34,4 +42,10 @@ __all__ = [
     "HasilPencarianItem",
     "PencarianResponse",
     "LogAuditResponse",
+    "PenggunaBase",
+    "PenggunaCreate",
+    "PenggunaUpdate",
+    "PenggunaResponse",
+    "LoginRequest",
+    "TokenResponse",
 ]

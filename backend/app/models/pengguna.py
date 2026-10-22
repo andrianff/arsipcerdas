@@ -20,3 +20,10 @@ class Pengguna(Base):
     is_active = Column(Boolean, default=True, nullable=False)
     waktu_pembuatan = Column(DateTime(timezone=True), server_default=func.now())
     waktu_pembaruan = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    @property
+    def nama(self) -> str:
+        """
+        Alias untuk kompatibilitas dengan AuditService yang memanggil current_user.nama
+        """
+        return self.nama_lengkap

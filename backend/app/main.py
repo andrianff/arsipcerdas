@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
+from app.core.database import Base, engine
+import app.models  # Memuat semua model agar terdaftar di SQLAlchemy
 from app.core.minio_client import ensure_bucket_exists
 from app.api.v1.api import api_router
 
@@ -21,12 +23,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 @app.on_event("startup")
 def on_startup():
-    # Pastikan bucket MinIO sudah siap saat aplikasi pertama kali menyala
+    # 1. Pastikan semua tabel di database terbuat (termasuk tabel pengguna baru)
+    Base.metadata.create_all(bind=engine)
+    # 2. Pastikan bucket MinIO sudah siap saat aplikasi pertama kali menyala
     ensure_bucket_exists()
-
 
 @app.get("/health", tags=["Health Check"])
 def health_check():
@@ -35,7 +37,6 @@ def health_check():
         "project": settings.PROJECT_NAME,
         "environment": settings.ENVIRONMENT
     }
-
 
 # Pasang seluruh router API v1
 app.include_router(api_router, prefix=settings.API_V1_STR)
