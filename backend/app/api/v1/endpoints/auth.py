@@ -1,5 +1,7 @@
 from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.api.deps import get_db, get_current_user
 from app.core.config import settings
@@ -8,18 +10,17 @@ from app.models.pengguna import Pengguna
 from app.schemas.pengguna import (
     PenggunaCreate,
     PenggunaResponse,
-    LoginRequest,
     TokenResponse,
 )
 
 router = APIRouter()
+
 
 @router.post("/register", response_model=PenggunaResponse, status_code=status.HTTP_201_CREATED)
 def register_pengguna(payload: PenggunaCreate, db: Session = Depends(get_db)):
     """
     Mendaftarkan pengguna baru ke dalam sistem EDRMS.
     """
-    # Cek apakah email sudah terdaftar
     user_exist = db.query(Pengguna).filter(Pengguna.email == payload.email.lower().strip()).first()
     if user_exist:
         raise HTTPException(
@@ -27,7 +28,6 @@ def register_pengguna(payload: PenggunaCreate, db: Session = Depends(get_db)):
             detail="Email sudah terdaftar. Silakan gunakan email lain."
         )
     
-    # Hash password sebelum disimpan
     hashed_pwd = get_password_hash(payload.password)
 
     pengguna_baru = Pengguna(
@@ -44,16 +44,37 @@ def register_pengguna(payload: PenggunaCreate, db: Session = Depends(get_db)):
     
     return pengguna_baru
 
+
 @router.post("/login", response_model=TokenResponse)
-def login_pengguna(
-    payload: LoginRequest,
+async def login_pengguna(
+    request: Request,
     db: Session = Depends(get_db)
 ):
     """
-    Autentikasi login pengguna dengan email & passwordn, mengembalikan JWT Bearer Token.
+    Autentikasi login pengguna:
+    - Mendukung Form Data (otomatis untuk tombol Authorize Swagger UI)
+    - Mendukung JSON payload (untuk Frontend / API Client)
     """
-    user = db.query(Pengguna).filter(Pengguna.email == payload.email.lower().strip()).first()
-    if not user or not verify_password(payload.password, user.hashed_password):
+    content_type = request.headers.get("content-type", "")
+    
+    # Deteksi apakah dikirim lewat Form Data (Swagger UI) atau JSON (Frontend)
+    if "application/json" in content_type:
+        data = await request.json()
+        email_or_user = data.get("email") or data.get("username", "")
+        raw_password = data.get("password", "")
+    else:
+        form = await request.form()
+        email_or_user = form.get("username") or form.get("email", "")
+        raw_password = form.get("password", "")
+
+    if not email_or_user or not raw_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email/username dan password wajib diisi."
+        )
+
+    user = db.query(Pengguna).filter(Pengguna.email == str(email_or_user).lower().strip()).first()
+    if not user or not verify_password(raw_password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email atau password salah.",
@@ -78,6 +99,7 @@ def login_pengguna(
         token_type="bearer",
         pengguna=user
     )
+
 
 @router.get("/me", response_model=PenggunaResponse)
 def get_current_user_profile(current_user: Pengguna = Depends(get_current_user)):
