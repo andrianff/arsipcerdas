@@ -11,7 +11,9 @@ from app.models.jadwal_retensi import JadwalRetensi
 from app.models.potongan_berkas import PotonganBerkas
 from app.schemas.berkas import (
     BerkasResponse,
-    BerkasVerifyHashResponse
+    BerkasVerifyHashResponse,
+    PenyusutanRequest,
+    PenyusutanResponse
 )
 from app.schemas.log_audit import LogAuditResponse
 from app.services.storage_service import StorageService
@@ -163,6 +165,106 @@ def get_daftar_berkas(
         query = query.filter(Berkas.level_keamanan == level_keamanan)
     return query.order_by(Berkas.waktu_pembuatan.desc()).offset(skip).limit(limit).all()
 
+@router.get("/retensi/kedaluwarsa", response_model=List[BerkasResponse])
+def get_berkas_kedaluwarsa(
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(require_roles(["admin", "arsiparis"])),
+    skip: int = 0,
+    limit: int = 50
+):
+    """
+    Mengambil daftar seluruh arsip yang masa retensinya telah berakhir dan siap disusutkan.
+    Khusus peran Admin dan Arsiparis.
+    """
+    now = datetime.now()
+    berkas_list = (
+        db.query(Berkas).filter(
+            Berkas.status_siklus_hidup == "aktif",
+            Berkas.tanggal_akhir_retensi <= now
+        )
+        .order_by(Berkas.tanggal_akhir_retensi.asc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+    return berkas_list
+
+@router.post("/{id}/susutkan", response_model=PenyusutanResponse)
+def eksekusi_penyusutan(
+    id: UUID,
+    payload: PenyusutanRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(require_roles(["admin", "arsiparis"]))
+):
+    """
+    Eksekusi penyusutan arsip (Pemusnahan atau Penetapan Permanen) sesuai regulasi ANRI & ISO 15489:
+    - Jika 'musnah': File fisik di MinIO dihapus, embedding teks dibersihkan, status jadi 'musnah'.
+    - Jika 'permanen': Status diubah jadi 'permanen' (arsip statis).
+    - Mencatat Berita Acara ke Jejak Audit Kearsipan.
+    """
+    berkas = db.query(Berkas).filter(Berkas.id == id).first()
+    if not berkas:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Berkas tidak ditemukan.")
+    if berkas.status_siklus_hidup in ["musnah", "permanen"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Berkas sudah berstatus '{berkas.status_siklus_hidup}' dan tidak dapat disusutkan ulang."
+        )
+    # Tentukan aksi: dari payload atau dari aturan JRA
+    tindakan = payload.tindakan_paksa
+    if not tindakan and berkas.jadwal_retensi:
+        tindakan = berkas.jadwal_retensi.aksi_putusan
+    if not tindakan:
+        tindakan = "musnah"
+    status_awal = berkas.status_siklus_hidup
+    if tindakan.lower() in ["musnah", "pemusnahan"]:
+        # 1. Hapus file fisik dari MinIO
+        try:
+            StorageService.delete_file(berkas.storage_path)
+        except Exception as e:
+            print(f"Warning saat menghapus objek MinIO: {e}")
+        # 2. Hapus potongan embedding dari DB agar tidak muncul lagi di pencarian cerdas
+        db.query(PotonganBerkas).filter(PotonganBerkas.id_berkas == berkas.id).delete()
+        # 3. Update status metadata berkas
+        berkas.status_siklus_hidup = "musnah"
+        berkas.storage_path = "[DIMUSNAHKAN]"
+        status_baru = "musnah"
+        label_tindakan = "PEMUSNAHAN_FISIK"
+        pesan = f"Berkas {berkas.nomor_berkas} berhasil dimusnahkan secara permanen."
+    else:
+        # Penetapan arsip statis / permanen
+        berkas.status_siklus_hidup = "permanen"
+        status_baru = "permanen"
+        label_tindakan = "PENETAPAN_STATIS"
+        pesan = f"Berkas {berkas.nomor_berkas} berhasil ditetapkan sebagai arsip permanen/statis."
+    db.commit()
+    db.refresh(berkas)
+    # 4. Catat Berita Acara ke Audit Log (Kepatuhan ISO 15489)
+    AuditService.log_activity(
+        db=db,
+        id_berkas=berkas.id,
+        aksi=label_tindakan,
+        id_pengguna=current_user.id,
+        nama_pengguna=current_user.nama,
+        request=request,
+        details={
+            "status_sebelumnya": status_awal,
+            "status_baru": status_baru,
+            "hash_sha256_arsip": berkas.sha256_hash,
+            "catatan_berita_acara": payload.catatan_berita_acara or "Penyusutan reguler sesuai JRA"
+        }
+    )
+    return PenyusutanResponse(
+        id_berkas=berkas.id,
+        nomor_berkas=berkas.nomor_berkas,
+        judul=berkas.judul,
+        status_sebelumnya=status_awal,
+        status_baru=status_baru,
+        tindakan=label_tindakan,
+        catatan_berita_acara=payload.catatan_berita_acara,
+        pesan=pesan
+    )
 
 @router.get("/{id}", response_model=BerkasResponse)
 def get_detail_berkas(

@@ -53,3 +53,25 @@ class BerkasVerifyHashResponse(BaseModel):
     expected_hash: str
     calculated_current_hash: str
     pesan: str
+
+class PenyusutanRequest(BaseModel):
+    catatan_berita_acara: Optional[str] = Field(
+        None,
+        description="Nomor/Alasan Berita Acara Pemusnahan/Penetapan Statis",
+        examples=["BA.Pemusnahan/2026/X/001 - Berkas telah melewati retensi 5 tahun"]
+    )
+    tindakan_paksa: Optional[str] = Field(
+        None,
+        description="Pilihan paksa: musnah atau permanen (opsional, jika kosong mengikuti aksi JRA)",
+        examples=["musnah"]
+    )
+
+class PenyusutanResponse(BaseModel):
+    id_berkas: UUID
+    nomor_berkas: str
+    judul: str
+    status_sebelumnya: str
+    status_baru: str
+    tindakan: str
+    catatan_berita_acara: Optional[str]
+    pesan: str
