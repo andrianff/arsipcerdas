@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-from app.api.deps import get_db, get_current_user, CurrentUser
+from app.api.deps import get_db, get_current_user, CurrentUser, require_roles
 from app.models.berkas import Berkas
 from app.models.jadwal_retensi import JadwalRetensi
 from app.models.potongan_berkas import PotonganBerkas
@@ -149,6 +149,7 @@ async def upload_berkas(
 @router.get("/", response_model=List[BerkasResponse])
 def get_daftar_berkas(
     db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
     status: Optional[str] = None,
     level_keamanan: Optional[str] = None,
     skip: int = 0,
@@ -258,10 +259,13 @@ def verify_berkas_integrity(
         pesan=pesan
     )
 
-
 @router.get("/{id}/audit-logs", response_model=List[LogAuditResponse])
-def get_audit_trail(id: UUID, db: Session = Depends(get_db)):
-    """Mengambil riwayat jejak audit kepatuhan untuk dokumen tertentu."""
+def get_audit_trail(
+    id: UUID, 
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(require_roles(["admin", "arsiparis", "auditor"]))
+    ):
+    """Mengambil riwayat jejak audit kepatuhan untuk dokumen tertentu (Khusus Admin, Arsiparis, Auditor)."""
     berkas = db.query(Berkas).filter(Berkas.id == id).first()
     if not berkas:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Berkas tidak ditemukan.")
