@@ -266,6 +266,7 @@ body {
   color: #334155;
 }
 
+.input-field,
 .form-input,
 .form-select,
 .form-textarea {
@@ -280,6 +281,7 @@ body {
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
+.input-field:focus,
 .form-input:focus,
 .form-select:focus,
 .form-textarea:focus {

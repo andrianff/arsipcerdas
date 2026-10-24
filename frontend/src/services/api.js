@@ -36,13 +36,22 @@ export const authService = {
 
 // Layanan Berkas & Dokumen
 export const berkasService = {
-    list: async () => {
-        const response = await api.get('/berkas/')
+    list: async (params = {}) => {
+        const response = await api.get('/berkas/', { params })
+        return response.data
+    },
+    getAll: async (params = {}) => {
+        const response = await api.get('/berkas/', { params })
         return response.data
     },
     getDetail: async (id) => {
         const response = await api.get(`/berkas/${id}`)
         return response.data
+    },
+    getItems: async (id) => {
+        // Pada backend ini, satu berkas mewakili dokumen PDF dengan potongan chunk
+        const response = await api.get(`/berkas/${id}`)
+        return [response.data]
     },
     upload: async (formData) => {
         const response = await api.post('/berkas/upload', formData, {
@@ -50,6 +59,29 @@ export const berkasService = {
         })
         return response.data
     },
+    create: async (formData) => {
+        // Alias untuk upload berkas baru
+        const response = await api.post('/berkas/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        return response.data
+    },
+    uploadItem: async (id, formData) => {
+        // Upload item berkas
+        const response = await api.post('/berkas/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        return response.data
+    },
+    downloadUrl: (id) => `/api/v1/berkas/${id}/download`,
+    verifyIntegrity: async (id) => {
+        const response = await api.post(`/berkas/${id}/verify-integrity`)
+        return response.data
+    },
+    getAuditLogs: async (id) => {
+        const response = await api.get(`/berkas/${id}/audit-logs`)
+        return response.data
+    }
 }
 
 // Layanan Jadwal Retensi Arsip (JRA)
@@ -58,11 +90,18 @@ export const jraService = {
         const response = await api.get('/jadwal-retensi/')
         return response.data
     },
+    getAll: async () => {
+        const response = await api.get('/jadwal-retensi/')
+        return response.data
+    },
     create: async (data) => {
         const response = await api.post('/jadwal-retensi/', data)
         return response.data
     },
 }
+
+// Alias klasifikasiService -> jraService untuk kompatibilitas nama
+export const klasifikasiService = jraService
 
 // Layanan Pencarian Cerdas (Hybrid AI + Keyword)
 export const searchService = {
