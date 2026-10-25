@@ -1,65 +1,45 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import Sidebar from './components/Sidebar'
 import Dashboard from './components/Dashboard'
 import Berkas from './components/Berkas'
 import Pencarian from './components/Pencarian'
-import Login from './components/Login'
+import { Bell, Search } from 'lucide-react'
 
 function App() {
-  // Cek apakah user sudah login di localStorage atau gunakan user default demo
-  const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('user')
-    return saved ? JSON.parse(saved) : { username: 'arsiparis', role: 'arsiparis', full_name: 'Arsiparis Ahli' }
-  })
+  // Tab aktif sesuai struktur menu Figma (default: dashboard atau record_explorer)
+  const [activeTab, setActiveTab] = useState('record_explorer')
 
-  // State menu aktif: dashboard, pencarian, berkas, jra, penyusutan
-  const [activeTab, setActiveTab] = useState('dashboard')
-
-  const handleLogout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    setUser(null)
-  }
-
-  // Jika belum login, tampilkan halaman login
-  if (!user) {
-    return <Login onLoginSuccess={(loggedInUser) => setUser(loggedInUser)} />
-  }
-
-  // Render halaman sesuai menu aktif di sidebar
+  // Render halaman berdasarkan tab yang dipilih di sidebar
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard />
-      case 'berkas':
+        return <Dashboard setActiveTab={setActiveTab} />
+      case 'record_explorer':
         return <Berkas />
-      case 'pencarian':
-        return <Pencarian />
-      case 'jra':
+      case 'ingestion':
         return (
-          <div className='card'>
-            <h2>
-              Jadwal Retensi Arsip (JRA)
-            </h2>
-            <p style={{
-              color: '#64748b',
-              marginTop: '8px'
-            }}>
-              Modul penentuan durasi retensi aktif & inaktif serta putusan akhir arsip (Segera hadir).
+          <div className="card">
+            <h2 className="card-title">Ingestion & Upload Berkas</h2>
+            <p style={{ color: '#64748B', marginTop: '8px' }}>
+              Modul OCR, ekstraksi metadata otomatis, dan integrasi berkas digital baru.
             </p>
           </div>
         )
-      case 'penyusutan':
+      case 'audit_kepatuhan':
         return (
-          <div className='card'>
-            <h2>
-              Penyusutan Arsip & Pemusnahan Arsip
-            </h2>
-            <p style={{
-              color: '#64748b',
-              marginTop: '8px'
-            }}>
-              Modul berita acara pemusnahan dan penetapan arsip permanen sesuai ISO 15489 (Segera hadir).
+          <div className="card">
+            <h2 className="card-title">Audit Trail & Kepatuhan ISO 15489</h2>
+            <p style={{ color: '#64748B', marginTop: '8px' }}>
+              Pencatatan log aktivitas, hash integritas SHA-256, dan pelaporan kepatuhan arsip.
+            </p>
+          </div>
+        )
+      case 'pengaturan_sistem':
+        return (
+          <div className="card">
+            <h2 className="card-title">Pengaturan Sistem & Penyimpanan</h2>
+            <p style={{ color: '#64748B', marginTop: '8px' }}>
+              Konfigurasi kapasitas penyimpanan cloud, kuota, hak akses, dan preferensi EDRMS.
             </p>
           </div>
         )
@@ -69,49 +49,60 @@ function App() {
   }
 
   return (
-    <div className='app-layout'>
-      {/* Sidebar Navigari Kiri */}
-      <Sidebar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        user={user}
-        onLogout={handleLogout}
-      />
+    <div className="app-layout">
+      {/* 1. Sidebar Navigasi Kiri */}
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      {/* Area Konten Utama */}
-      <div className='main-wrapper'>
+      {/* 2. Area Konten Utama */}
+      <div className="main-wrapper">
         {/* Top Navbar */}
-        <header className='top-navbar'>
-          <div style={{
-            fontSize: '0.9rem',
-            color: '#64748b',
-            fontWeight: '500'
-          }}>
-            ArsipCerdas &bull;
-            <strong style={{
-              color: '#0f172a'
-            }}>
-              {activeTab.toUpperCase()}
+        <header className="top-navbar">
+          {/* Breadcrumb / Label Halaman */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}>
+            <span style={{ color: '#64748B' }}>ArsipCerdas</span>
+            <span style={{ color: '#CBD5E1' }}>/</span>
+            <strong style={{ color: '#0F172A', textTransform: 'capitalize' }}>
+              {activeTab.replace('_', ' ')}
             </strong>
           </div>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px'
-          }}>
-            <span
-              className='badge badge-aktif'
+
+          {/* Sisi Kanan: Global Search & Notifikasi */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div className="topbar-search">
+              <Search size={16} style={{ color: '#94A3B8' }} />
+              <input type="text" placeholder="Cari berkas, nomor naskah..." />
+              <kbd>⌘K</kbd>
+            </div>
+
+            <button className="topbar-action-btn" title="Notifikasi">
+              <Bell size={18} />
+              <span className="notification-dot" />
+            </button>
+
+            {/* Avatar Profil Pengguna */}
+            <div
               style={{
-                padding: '4px 10px'
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #4F46E5, #818CF8)',
+                color: '#FFFFFF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: '700',
+                fontSize: '0.85rem',
+                cursor: 'pointer',
               }}
+              title="Ahmad Fauzi (Arsiparis)"
             >
-              Sistem Aktif (ISO 15489)
-            </span>
+              A
+            </div>
           </div>
         </header>
 
-        {/* Isi Halaman yang Dipilih */}
-        <main className='page-content'>
+        {/* 3. Konten Halaman */}
+        <main className="page-content">
           {renderContent()}
         </main>
       </div>
