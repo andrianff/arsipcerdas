@@ -3,7 +3,7 @@ import Sidebar from './components/Sidebar'
 import Dashboard from './components/Dashboard'
 import Berkas from './components/Berkas'
 import Pencarian from './components/Pencarian'
-import { Bell, Search } from 'lucide-react'
+import { Bell, Layout, LineHeight, Search, ChevronDown } from 'lucide-react'
 
 function App() {
   // Tab aktif sesuai struktur menu Figma (default: dashboard atau record_explorer)
@@ -60,7 +60,7 @@ function App() {
           {/* Breadcrumb / Label Halaman */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}>
             <span style={{ color: '#64748B' }}>ArsipCerdas</span>
-            <span style={{ color: '#CBD5E1' }}>/</span>
+            <span style={{ color: '#CBD5E1' }}>&gt;</span>
             <strong style={{ color: '#0F172A', textTransform: 'capitalize' }}>
               {activeTab.replace('_', ' ')}
             </strong>
@@ -82,22 +82,47 @@ function App() {
             {/* Avatar Profil Pengguna */}
             <div
               style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, #4F46E5, #818CF8)',
-                color: '#FFFFFF',
                 display: 'flex',
+                width: '32px',
+                height: '32px',
+                layout: 'grid',
+                fontWeight: '700',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontWeight: '700',
-                fontSize: '0.85rem',
-                cursor: 'pointer',
+                color: '#ffffff',
+                background: '#273449',
+                borderRadius: '7px'
               }}
-              title="Ahmad Fauzi (Arsiparis)"
             >
-              A
+              AR
             </div>
+            <div>
+              <strong style={{
+                width: '64px',
+                height: '15px',
+                fontWeight: '700',
+                fontSize: '0.625rem',
+                color: '#0f172a'
+              }}>
+                Andrian Fajar Fahmi
+              </strong><br />
+              <small style={{
+                width: '64px',
+                heigh: '13px',
+                fontWeight: '400',
+                fontSize: '0.5625rem',
+                color: '#64748b',
+                marginTop: '2px'
+              }}>
+                Arsiparis Utama
+              </small>
+            </div>
+            <ChevronDown
+              size={14}
+              style={{
+                color: '#94A3B8'
+              }}
+            />
           </div>
         </header>
 
